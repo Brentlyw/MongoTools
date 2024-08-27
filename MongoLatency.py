@@ -1,5 +1,6 @@
 import asyncio
 import motor.motor_asyncio
+import pymongo.errors
 import sys
 import time
 from rich.console import Console
@@ -7,7 +8,7 @@ from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn, TimeEl
 
 console = Console()
 
-async def check_mongo(ip, timeout=2):
+async def check_mongo(ip, timeout=5):
     client = motor.motor_asyncio.AsyncIOMotorClient(
         f'mongodb://{ip}:27017/',
         serverSelectionTimeoutMS=timeout * 1000,
@@ -15,9 +16,15 @@ async def check_mongo(ip, timeout=2):
     )
     try:
         await client.server_info()
-        return True
+        return True, None
+    except pymongo.errors.ServerSelectionTimeoutError:
+        return False, "Timeout"
+    except pymongo.errors.OperationFailure as e:
+        if "wire version" in str(e).lower():
+            return False, "WireVersionError"
+        return True, None
     except Exception:
-        return False
+        return True, None
     finally:
         client.close()
 
@@ -41,13 +48,17 @@ async def process_ips(file_name, output_file):
         task = progress.add_task("[cyan]Checking IPs...", total=total_ips)
 
         for ip in ips:
-            result = await check_mongo(ip)
+            result, error = await check_mongo(ip)
             if result:
                 online_ips.append(ip)
                 console.print(f"[green]Online: {ip}[/green]")
             else:
-                console.print(f"[red]Offline: {ip}[/red]")
+                if error == "WireVersionError":
+                    console.print(f"[bold yellow]Wire Version Error: {ip} (Marked as Offline)[/bold yellow]")
+                else:
+                    console.print(f"[red]Offline: {ip}[/red]")
             progress.update(task, advance=1)
+
     with open(output_file, 'w') as file:
         for ip in online_ips:
             file.write(f"{ip}\n")

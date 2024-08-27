@@ -58,7 +58,6 @@ def dumpCol(db, collection_name, ip):
             writer.writerow(first_doc)
             row_count = 1
             for document in cursor:
-                # Handle dynamic fields
                 if set(document.keys()) != set(header):
                     header = document.keys()
                     file.seek(0)
@@ -79,42 +78,44 @@ def dumpAllCol(ip, username, password, db_collection_map):
         client = MongoClient(f'mongodb://{username}:{password}@{ip}:27017/', serverSelectionTimeoutMS=5000)
         table = Table(show_header=True, header_style="bold cyan")
         table.add_column("Database Name", style="bold magenta")
+        table.add_column("Number of Collections", style="bold cyan")
         table.add_column("Status", style="bold green")
         total_databases = 0
         total_collections = 0
         total_rows = 0
-        for db_name, _ in db_collection_map:
-            table.add_row(db_name, "[bold yellow]In progress...[/bold yellow]")
+        for db_name, collections in db_collection_map:
+            table.add_row(db_name, str(len(collections)), "[bold yellow]In progress...[/bold yellow]")
         with Live(table, console=console, refresh_per_second=4) as live:
             for row_num, (db_name, collections) in enumerate(db_collection_map):
                 success = True
                 db = client[db_name]
                 database_rows = 0
+                collections_dumped = 0
                 for collection in collections:
                     row_count = dumpCol(db, collection, ip)
                     if row_count == 0:
                         success = False
-                        break
+                        console.print(f"[bold yellow]Collection '{collection}' in database '{db_name}' was skipped (no data or error).[/bold yellow]")
                     else:
                         total_collections += 1
+                        collections_dumped += 1
                         database_rows += row_count
                 if success:
                     total_databases += 1
-                    total_rows += database_rows
-                    status = "[bold green][DUMPED][/bold green]"
-                else:
-                    status = "[bold red][FAILED][/bold red]"
+                total_rows += database_rows
+                status = f"[bold green][DUMPED {collections_dumped}/{len(collections)}][/bold green]" if collections_dumped == len(collections) else f"[bold red][FAILED {collections_dumped}/{len(collections)}][/bold red]"
                 new_table = Table(show_header=True, header_style="bold cyan")
                 new_table.add_column("Database Name", style="bold magenta")
+                new_table.add_column("Number of Collections", style="bold cyan")
                 new_table.add_column("Status", style="bold green")
-                for i, (db_name, _) in enumerate(db_collection_map):
+                for i, (db_name, collections) in enumerate(db_collection_map):
                     if i < row_num:
-                        final_status = "[bold green][DUMPED][/bold green]"
+                        final_status = f"[bold green][DUMPED {len(collections)}/{len(collections)}][/bold green]"
                     elif i == row_num:
                         final_status = status
                     else:
                         final_status = "[bold yellow]In progress...[/bold yellow]"
-                    new_table.add_row(db_name, final_status)
+                    new_table.add_row(db_name, str(len(collections)), final_status)
                 live.update(new_table)
         return total_databases, total_collections, total_rows
     except Exception as e:
@@ -123,6 +124,9 @@ def dumpAllCol(ip, username, password, db_collection_map):
     finally:
         if 'client' in locals():
             client.close()
+
+
+
 
 if __name__ == "__main__":
     console.print("[bold magenta]MongoDB Database Dumper [MDBDD v1.0][/bold magenta]")
