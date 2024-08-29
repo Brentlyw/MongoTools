@@ -1,5 +1,4 @@
-# MongoTools
-A collection of MongoDB offensive Python tools for database dumping.
+![Alt text](https://i.postimg.cc/fbFNz9xK/mongotools.jpg)
 
 # Whats Included?
 - **MongoBrute**: A MongoDB authentication bruteforcer that uses a user:pass combolist and targets a list of IPs.
