@@ -8,6 +8,8 @@
 - **MongoLatency**: Iterates through a ".txt" list of IPs and saves those which are online, and have low latency (2000ms).
 - **MongoGem**: Used to scan a list of MongoDB IPs (unauthenticated) and scan for unbreached databases with >3 collections.
 - **ShodanMongo**: Uses your Shodan API key to scrape public-facing MongoDB instance IP addresses and save to "Targets.txt."
+- **Combo.txt**: The first combolist to try, most effective.
+- **Combo2.txt**: The second combolist to try, less effective.
 
 # Notes
 - Some scripts have a nice little UI, some dont. They all still work.
