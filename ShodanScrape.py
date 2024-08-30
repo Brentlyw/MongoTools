@@ -1,6 +1,6 @@
 import shodan
 
-SHODAN_API_KEY = 'QG3sYeFYSAbthNFxzIZjRURZPElVEvxL'
+SHODAN_API_KEY = ''
 QUERY = 'port:27017 "MongoDB Server Information" -authentication country:US'
 
 def search_shodan(api_key, query):
